@@ -1,4 +1,7 @@
 import { AppSidebar } from "@/components/app-sidebar"
+import { CPU_Usage } from "@/components/Pages/CPU_Usage"
+import { Ram_Usage } from "@/components/Pages/Ram_Usage"
+import { Storage_Usage } from "@/components/Pages/Storage_Usage"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -40,9 +43,9 @@ export default function App() {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
+            <CPU_Usage />
+            <Ram_Usage />
+            <Storage_Usage />
           </div>
           <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
         </div>
