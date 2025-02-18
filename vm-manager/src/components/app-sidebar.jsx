@@ -1,19 +1,11 @@
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
+  Box,
+  Container,
+  MonitorPlay,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -23,8 +15,9 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { NavDashboard } from "./nav-dashboard"
 
-// This is sample data.
+// Updated sample data
 const data = {
   user: {
     name: "shadcn",
@@ -33,123 +26,49 @@ const data = {
   },
   teams: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      name: "Home Lab",
+      logo: MonitorPlay,
+      plan: "Personal",
     },
   ],
   navMain: [
     {
-      title: "Playground",
+      title: "Docker Containers",
       url: "#",
-      icon: SquareTerminal,
-      isActive: true,
+      icon: Container,
       items: [
         {
-          title: "History",
+          title: "nginx-proxy",
           url: "#",
         },
         {
-          title: "Starred",
+          title: "postgres-db",
           url: "#",
         },
         {
-          title: "Settings",
+          title: "redis-cache",
           url: "#",
         },
       ],
     },
     {
-      title: "Models",
+      title: "Virtual Machines",
       url: "#",
-      icon: Bot,
+      icon: Box,
       items: [
         {
-          title: "Genesis",
+          title: "Ubuntu-Server",
           url: "#",
         },
         {
-          title: "Explorer",
+          title: "Windows-10-Pro",
           url: "#",
         },
         {
-          title: "Quantum",
+          title: "Debian-11",
           url: "#",
         },
       ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 }
@@ -158,18 +77,18 @@ export function AppSidebar({
   ...props
 }) {
   return (
-    (<Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
+        <NavDashboard projects={data.projects} />
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />
-    </Sidebar>)
+    </Sidebar>
   );
 }
