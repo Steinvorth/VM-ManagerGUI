@@ -1,34 +1,58 @@
-import React from 'react'
+import React from 'react';
 import { useMetrics } from '@/hooks/use-metrics';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 export const Storage_Usage = () => {
   const { metrics, error } = useMetrics();
-
-  if (error) return <div>Error: {error}</div>;
-  if (!metrics) return <div>Loading...</div>;
 
   const formatBytes = (bytes) => {
     const gb = bytes / (1024 * 1024 * 1024);
     return gb.toFixed(2) + ' GB';
   };
 
+  if (error) return (
+    <Card className="col-span-1">
+      <CardHeader>
+        <CardTitle>Storage Usage</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-red-500">Error: {error}</div>
+      </CardContent>
+    </Card>
+  );
+
+  if (!metrics) return (
+    <Card className="col-span-1">
+      <CardHeader>
+        <CardTitle>Storage Usage</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="animate-pulse">Loading...</div>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <div className="p-4 rounded-lg bg-card">
-      <h2 className="text-lg font-semibold mb-4">Storage Usage</h2>
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Usage</p>
-          <div className="text-2xl font-bold">{metrics.disk.percent}%</div>
+    <Card className="col-span-1">
+      <CardHeader>
+        <CardTitle>Storage Usage</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Usage</p>
+            <div className="text-2xl font-bold">{metrics.disk.percent}%</div>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Free Space</p>
+            <div className="text-2xl font-bold">{formatBytes(metrics.disk.free)}</div>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Total Space</p>
+            <div className="text-2xl font-bold">{formatBytes(metrics.disk.total)}</div>
+          </div>
         </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Free Space</p>
-          <div className="text-2xl font-bold">{formatBytes(metrics.disk.free)}</div>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Total Space</p>
-          <div className="text-2xl font-bold">{formatBytes(metrics.disk.total)}</div>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
