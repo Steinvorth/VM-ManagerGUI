@@ -1,5 +1,5 @@
 import React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { TrendingUp } from "lucide-react";
 import { useMetrics } from '@/hooks/use-metrics';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -8,6 +8,41 @@ import { chartConfig } from '@/lib/chart-config';
 
 export const Storage_Usage = () => {
   const { metrics, error } = useMetrics();
+  const containerRef = React.useRef(null);
+  const [containerHeight, setContainerHeight] = React.useState(0);
+
+  React.useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        setContainerHeight(containerRef.current.clientHeight);
+      }
+    };
+
+    // Create ResizeObserver for more accurate size tracking
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Initial measurement
+    updateHeight();
+
+    return () => {
+      if (containerRef.current) {
+        resizeObserver.unobserve(containerRef.current);
+      }
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  const getYAxisTicks = () => {
+    if (containerHeight < 100) {
+      return [0, 50, 100];
+    } else if (containerHeight < 150) {
+      return [0, 20, 40, 60, 80, 100];
+    }
+    return [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  };
 
   const formatBytes = (bytes) => {
     const gb = bytes / (1024 * 1024 * 1024);
@@ -68,47 +103,46 @@ export const Storage_Usage = () => {
         </div>
       </CardHeader>
       <CardContent className="metric-card-content">
-        <div className="chart-container">
-          <ChartContainer config={chartConfig}>
-            <AreaChart
-              data={chartData}
-              width="100%"
-              height="100%"
-              margin={{ top: 5, right: 25, left: 35, bottom: 5 }}
-              accessibilityLayer
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                height={24}
-                tick={{ fontSize: 11 }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                width={35}
-                tick={{ fontSize: 11 }}
-                ticks={[0, 20, 40, 60, 80, 100]}
-                domain={[0, 100]}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="line" />}
-              />
-              <Area
-                dataKey="usage"
-                type="natural"
-                fill={`hsl(var(--chart-3))`}
-                fillOpacity={0.2}
-                stroke={`hsl(var(--chart-3))`}
-                isAnimationActive={false}
-              />
-            </AreaChart>
+        <div ref={containerRef} className="chart-container">
+          <ChartContainer config={chartConfig} className="w-full aspect-auto">
+            <ResponsiveContainer width="100%" height="100%" debounce={50}>
+              <AreaChart
+                data={chartData}
+                margin={{ top: 5, right: 10, left: 30, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  height={24}
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={5}
+                  width={25}
+                  tick={{ fontSize: 10 }}
+                  ticks={getYAxisTicks()}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="line" />}
+                />
+                <Area
+                  dataKey="usage"
+                  type="natural"
+                  fill={`hsl(var(--chart-3))`}
+                  fillOpacity={0.2}
+                  stroke={`hsl(var(--chart-3))`}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </ChartContainer>
         </div>
       </CardContent>

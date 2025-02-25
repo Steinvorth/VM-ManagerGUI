@@ -210,8 +210,7 @@
     flex: 1;
     min-height: 0; /* Important for preventing overflow */
     position: relative;
-    padding: 0.75rem;
-    display: flex;
+    padding: 0;
   }
 
   .metric-card-footer {
@@ -225,6 +224,7 @@
     height: 100%;
     min-height: 0;
     display: flex;
+    padding: 0.75rem;
   }
 
   /* Update chart styles */
@@ -260,6 +260,7 @@
     flex: 1;
     min-height: 0;
     position: relative;
+    padding: 0;
   }
 
   .metric-card-footer {
@@ -272,6 +273,7 @@
     inset: 0;
     height: 100%;
     width: 100%;
+    padding: 0.75rem;
   }
 
   .recharts-wrapper {

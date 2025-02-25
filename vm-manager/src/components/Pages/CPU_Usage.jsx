@@ -18,9 +18,21 @@ export const CPU_Usage = () => {
       }
     };
 
+    // Create ResizeObserver for more accurate size tracking
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Initial measurement
     updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
+
+    return () => {
+      if (containerRef.current) {
+        resizeObserver.unobserve(containerRef.current);
+      }
+      resizeObserver.disconnect();
+    };
   }, []);
 
   // Determine Y-axis ticks based on container height
@@ -90,44 +102,46 @@ export const CPU_Usage = () => {
       </CardHeader>
       <CardContent className="metric-card-content">
         <div ref={containerRef} className="chart-container">
-          <ChartContainer config={chartConfig}>
-            <AreaChart
-              data={chartData}
-              margin={{ top: 5, right: 10, left: 30, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={5}
-                height={20}
-                tick={{ fontSize: 10 }}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={5}
-                width={25}
-                tick={{ fontSize: 10 }}
-                ticks={getYAxisTicks()}
-                domain={[0, 100]}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="line" />}
-              />
-              <Area
-                dataKey="usage"
-                type="monotone"
-                fill={`hsl(var(--chart-1))`}
-                fillOpacity={0.2}
-                stroke={`hsl(var(--chart-1))`}
-                isAnimationActive={false}
-              />
-            </AreaChart>
+          <ChartContainer config={chartConfig} className="w-full aspect-auto">
+            <ResponsiveContainer width="100%" height="100%" debounce={50}>
+              <AreaChart
+                data={chartData}
+                margin={{ top: 5, right: 10, left: 30, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={5}
+                  height={20}
+                  tick={{ fontSize: 10 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={5}
+                  width={25}
+                  tick={{ fontSize: 10 }}
+                  ticks={getYAxisTicks()}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="line" />}
+                />
+                <Area
+                  dataKey="usage"
+                  type="monotone"
+                  fill={`hsl(var(--chart-1))`}
+                  fillOpacity={0.2}
+                  stroke={`hsl(var(--chart-1))`}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </ChartContainer>
         </div>
       </CardContent>
