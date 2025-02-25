@@ -23,7 +23,7 @@ export default function App() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-4" />
           <Breadcrumb>
@@ -34,20 +34,22 @@ export default function App() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="grid gap-4 md:grid-cols-3">
+        <div className="metrics-container">
+          <div className="metrics-row">
             <CPU_Usage />
             <Ram_Usage />
-            <Storage_Usage />
           </div>
-          <Card className="flex-1">
-            <CardHeader>
-              <CardTitle>System Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Future content for detailed system overview */}
-            </CardContent>
-          </Card>
+          <div className="metrics-row">
+            <Storage_Usage />
+            <Card className="metric-card">
+              <CardHeader className="metric-card-header">
+                <CardTitle className="text-base font-semibold">Network Usage</CardTitle>
+              </CardHeader>
+              <CardContent className="metric-card-content">
+                {/* Future network metrics */}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

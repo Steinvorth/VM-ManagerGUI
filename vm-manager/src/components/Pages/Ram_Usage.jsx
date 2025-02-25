@@ -27,9 +27,9 @@ export const Ram_Usage = () => {
   }, [metrics]);
 
   if (error) return (
-    <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle>Memory Usage</CardTitle>
+    <Card className="w-full h-[280px]">
+      <CardHeader className="p-3">
+        <CardTitle className="text-base">Memory Usage</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-red-500">Error: {error}</div>
@@ -38,9 +38,9 @@ export const Ram_Usage = () => {
   );
 
   if (!metrics) return (
-    <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle>Memory Usage</CardTitle>
+    <Card className="w-full h-[280px]">
+      <CardHeader className="p-3">
+        <CardTitle className="text-base">Memory Usage</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="animate-pulse">Loading...</div>
@@ -49,67 +49,70 @@ export const Ram_Usage = () => {
   );
 
   return (
-    <Card className="col-span-1">
-      <CardHeader className="space-y-1 p-4">
-        <CardTitle className="text-lg font-semibold">Memory Usage</CardTitle>
-        <div className="grid grid-cols-3 gap-4">
+    <Card className="metric-card">
+      <CardHeader className="metric-card-header">
+        <CardTitle className="text-base font-semibold">Memory Usage</CardTitle>
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <p className="text-xs text-muted-foreground">Usage</p>
-            <div className="text-xl font-bold">{metrics.memory.percent}%</div>
+            <p className="text-[10px] text-muted-foreground">Usage</p>
+            <div className="text-lg font-bold">{metrics.memory.percent}%</div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Available</p>
-            <div className="text-xl font-bold">{formatBytes(metrics.memory.available)}</div>
+            <p className="text-[10px] text-muted-foreground">Available</p>
+            <div className="text-lg font-bold">{formatBytes(metrics.memory.available)}</div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Total</p>
-            <div className="text-xl font-bold">{formatBytes(metrics.memory.total)}</div>
+            <p className="text-[10px] text-muted-foreground">Total</p>
+            <div className="text-lg font-bold">{formatBytes(metrics.memory.total)}</div>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <ChartContainer config={chartConfig}>
-          <AreaChart
-            data={chartData}
-            height={200}
-            margin={{ top: 5, right: 30, left: 35, bottom: 5 }}
-            accessibilityLayer
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              height={24}
-              tick={{ fontSize: 11 }}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              width={35}
-              tick={{ fontSize: 11 }}
-              ticks={[0, 20, 40, 60, 80, 100]}
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value}%`}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
-            />
-            <Area
-              dataKey="usage"
-              type="natural"
-              fill={`hsl(var(--chart-2))`}
-              fillOpacity={0.2}
-              stroke={`hsl(var(--chart-2))`}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ChartContainer>
+      <CardContent className="metric-card-content">
+        <div className="chart-container">
+          <ChartContainer config={chartConfig}>
+            <AreaChart
+              data={chartData}
+              width="100%"
+              height="100%"
+              margin={{ top: 5, right: 25, left: 35, bottom: 5 }}
+              accessibilityLayer
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                height={24}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                width={35}
+                tick={{ fontSize: 11 }}
+                ticks={[0, 20, 40, 60, 80, 100]}
+                domain={[0, 100]}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="line" />}
+              />
+              <Area
+                dataKey="usage"
+                type="natural"
+                fill={`hsl(var(--chart-2))`}
+                fillOpacity={0.2}
+                stroke={`hsl(var(--chart-2))`}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ChartContainer>
+        </div>
       </CardContent>
-      <CardFooter className="p-4">
+      <CardFooter className="metric-card-footer">
         <div className="grid gap-2">
           <div className="flex items-center gap-2 text-sm">
             <TrendingUp className="h-4 w-4" />

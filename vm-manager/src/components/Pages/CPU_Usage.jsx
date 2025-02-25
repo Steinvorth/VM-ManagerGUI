@@ -1,5 +1,5 @@
 import React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { TrendingUp } from "lucide-react";
 import { useMetrics } from '@/hooks/use-metrics';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -8,6 +8,30 @@ import { chartConfig } from '@/lib/chart-config';
 
 export const CPU_Usage = () => {
   const { metrics, error } = useMetrics();
+  const containerRef = React.useRef(null);
+  const [containerHeight, setContainerHeight] = React.useState(0);
+
+  React.useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        setContainerHeight(containerRef.current.clientHeight);
+      }
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
+  // Determine Y-axis ticks based on container height
+  const getYAxisTicks = () => {
+    if (containerHeight < 100) {
+      return [0, 50, 100];
+    } else if (containerHeight < 150) {
+      return [0, 20, 40, 60, 80, 100];
+    }
+    return [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  };
 
   const chartData = React.useMemo(() => {
     if (!metrics?.cpu?.history) return [];
@@ -22,9 +46,9 @@ export const CPU_Usage = () => {
   }, [metrics]);
 
   if (error) return (
-    <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle>CPU Usage</CardTitle>
+    <Card className="w-full h-[280px]">
+      <CardHeader className="p-3">
+        <CardTitle className="text-base">CPU Usage</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-red-500">Error: {error}</div>
@@ -33,9 +57,9 @@ export const CPU_Usage = () => {
   );
 
   if (!metrics) return (
-    <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle>CPU Usage</CardTitle>
+    <Card className="w-full h-[280px]">
+      <CardHeader className="p-3">
+        <CardTitle className="text-base">CPU Usage</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="animate-pulse">Loading...</div>
@@ -44,75 +68,76 @@ export const CPU_Usage = () => {
   );
 
   return (
-    <Card className="col-span-1">
-      <CardHeader className="space-y-1 p-4">
-        <CardTitle className="text-lg font-semibold">CPU Usage</CardTitle>
-        <div className="grid grid-cols-3 gap-4">
+    <Card className="metric-card">
+      <CardHeader className="metric-card-header">
+        <CardTitle className="text-base font-semibold">CPU Usage</CardTitle>
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <p className="text-xs text-muted-foreground">Usage</p>
-            <div className="text-xl font-bold">{metrics.cpu.usage_percent}%</div>
+            <p className="text-[10px] text-muted-foreground">Usage</p>
+            <div className="text-lg font-bold">{metrics.cpu.usage_percent}%</div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Frequency</p>
-            <div className="text-xl font-bold">
+            <p className="text-[10px] text-muted-foreground">Frequency</p>
+            <div className="text-lg font-bold">
               {(metrics.cpu.frequency_mhz / 1000).toFixed(2)} GHz
             </div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Cores</p>
-            <div className="text-xl font-bold">{metrics.cpu.cores}</div>
+            <p className="text-[10px] text-muted-foreground">Cores</p>
+            <div className="text-lg font-bold">{metrics.cpu.cores}</div>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <ChartContainer config={chartConfig}>
-          <AreaChart
-            data={chartData}
-            height={200}
-            margin={{ top: 5, right: 30, left: 35, bottom: 5 }}
-            accessibilityLayer
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              height={24}
-              tick={{ fontSize: 11 }}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              width={35}
-              tick={{ fontSize: 11 }}
-              ticks={[0, 20, 40, 60, 80, 100]}
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value}%`}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
-            />
-            <Area
-              dataKey="usage"
-              type="natural"
-              fill={`hsl(var(--chart-1))`}
-              fillOpacity={0.2}
-              stroke={`hsl(var(--chart-1))`}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ChartContainer>
+      <CardContent className="metric-card-content">
+        <div ref={containerRef} className="chart-container">
+          <ChartContainer config={chartConfig}>
+            <AreaChart
+              data={chartData}
+              margin={{ top: 5, right: 10, left: 30, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={5}
+                height={20}
+                tick={{ fontSize: 10 }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={5}
+                width={25}
+                tick={{ fontSize: 10 }}
+                ticks={getYAxisTicks()}
+                domain={[0, 100]}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="line" />}
+              />
+              <Area
+                dataKey="usage"
+                type="monotone"
+                fill={`hsl(var(--chart-1))`}
+                fillOpacity={0.2}
+                stroke={`hsl(var(--chart-1))`}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ChartContainer>
+        </div>
       </CardContent>
-      <CardFooter className="p-4">
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className="h-4 w-4" />
+      <CardFooter className="metric-card-footer">
+        <div className="grid gap-1">
+          <div className="flex items-center gap-2 text-xs">
+            <TrendingUp className="h-3 w-3" />
             <span className="font-medium">Real-time CPU usage</span>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-[10px] text-muted-foreground">
             Updated every 15 seconds
           </div>
         </div>
