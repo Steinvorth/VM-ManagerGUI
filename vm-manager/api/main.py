@@ -11,8 +11,10 @@ try:
     from fastapi.middleware.cors import CORSMiddleware
     import psutil
     import uvicorn
-    from typing import Dict
+    from typing import Dict, List
     import time
+    from collections import deque
+    from datetime import datetime, timedelta
 except ImportError as e:
     print(f"Failed to import required packages: {e}")
     print("Please ensure all requirements are installed:")
@@ -48,37 +50,75 @@ async def health_check():
     return {"status": "healthy", "timestamp": time.time()}
 
 
+# Constants
+MAX_HISTORY_MINUTES = 30
+HISTORY_INTERVAL_SECONDS = 60  # Store data every minute
+MAX_SAMPLES = (MAX_HISTORY_MINUTES * 60) // HISTORY_INTERVAL_SECONDS
+
+# Initialize deques for historical data
+cpu_history = deque(maxlen=MAX_SAMPLES)
+memory_history = deque(maxlen=MAX_SAMPLES)
+disk_history = deque(maxlen=MAX_SAMPLES)
+
+last_update_time = 0
+
+
+def should_update_history() -> bool:
+    global last_update_time
+    current_time = time.time()
+    if current_time - last_update_time >= HISTORY_INTERVAL_SECONDS:
+        last_update_time = current_time
+        return True
+    return False
+
+
+def add_to_history():
+    timestamp = datetime.now().isoformat()
+
+    # CPU metrics
+    cpu_percent = psutil.cpu_percent(interval=1)
+    cpu_history.append({"timestamp": timestamp, "usage": cpu_percent})
+
+    # Memory metrics
+    memory = psutil.virtual_memory()
+    memory_history.append({"timestamp": timestamp, "usage": memory.percent})
+
+    # Disk metrics
+    disk = psutil.disk_usage("/")
+    disk_history.append({"timestamp": timestamp, "usage": disk.percent})
+
+
 @app.get("/metrics")
 async def get_metrics() -> Dict:
     try:
-        # CPU metrics
-        cpu_percent = psutil.cpu_percent(interval=1)
+        if should_update_history():
+            add_to_history()
+
+        # Get current metrics
         cpu_freq = psutil.cpu_freq()
-        cpu_count = psutil.cpu_count()
-
-        # Memory metrics
         memory = psutil.virtual_memory()
-
-        # Disk metrics
         disk = psutil.disk_usage("/")
 
         return {
             "cpu": {
-                "usage_percent": cpu_percent,
+                "usage_percent": cpu_history[-1]["usage"] if cpu_history else 0,
                 "frequency_mhz": cpu_freq.current if cpu_freq else None,
-                "cores": cpu_count,
+                "cores": psutil.cpu_count(),
+                "history": list(cpu_history),
             },
             "memory": {
                 "total": memory.total,
                 "available": memory.available,
-                "percent": memory.percent,
+                "percent": memory_history[-1]["usage"] if memory_history else 0,
                 "used": memory.used,
+                "history": list(memory_history),
             },
             "disk": {
                 "total": disk.total,
                 "used": disk.used,
                 "free": disk.free,
-                "percent": disk.percent,
+                "percent": disk_history[-1]["usage"] if disk_history else 0,
+                "history": list(disk_history),
             },
             "timestamp": time.time(),
         }
