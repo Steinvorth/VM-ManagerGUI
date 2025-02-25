@@ -1,12 +1,11 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { ResourceChart } from "@/components/ResourceChart"
+import { ResourceDistribution } from "@/components/ResourceDistribution"
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -14,7 +13,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 export default function App() {
   return (
@@ -51,14 +49,7 @@ export default function App() {
               title="Storage Usage" 
               chartColor="--chart-3" 
             />
-            <Card className="metric-card">
-              <CardHeader className="metric-card-header">
-                <CardTitle className="text-base font-semibold">Network Usage</CardTitle>
-              </CardHeader>
-              <CardContent className="metric-card-content">
-                {/* Future network metrics */}
-              </CardContent>
-            </Card>
+            <ResourceDistribution />
           </div>
         </div>
       </SidebarInset>

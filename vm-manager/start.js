@@ -1,5 +1,5 @@
 import { spawn, execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -36,18 +36,20 @@ function setupPythonEnv() {
       }
     }
 
-    // Remove existing venv if it exists
-    if (existsSync(venvPath)) {
-      console.log('Removing existing virtual environment...');
-      execSync(`rm -rf "${venvPath}"`, { stdio: 'inherit' });
+    // Create logs directory
+    const logsDir = join(apiDir, 'logs');
+    if (!existsSync(logsDir)) {
+      mkdirSync(logsDir, { recursive: true });
     }
 
-    // Create new venv
-    console.log('Creating new virtual environment...');
-    execSync(`python3 -m venv "${venvPath}"`, {
-      stdio: 'inherit',
-      cwd: apiDir
-    });
+    // Create new venv if it doesn't exist or update if it does
+    if (!existsSync(venvPath)) {
+      console.log('Creating new virtual environment...');
+      execSync(`python3 -m venv "${venvPath}"`, {
+        stdio: 'inherit',
+        cwd: apiDir
+      });
+    }
 
     // Install requirements
     console.log('Installing Python dependencies...');
@@ -69,26 +71,65 @@ function setupPythonEnv() {
   }
 }
 
-function checkVenvActive(venvPath) {
-  try {
-    // Check if VIRTUAL_ENV is set correctly
-    const venvCheck = process.platform === 'win32'
-      ? execSync(`${join(venvPath, 'Scripts', 'python.exe')} -c "import sys; print(sys.prefix)"`, { 
-          stdio: ['pipe', 'pipe', 'pipe'],
-          encoding: 'utf8'
-        }).trim()
-      : execSync(`${join(venvPath, 'bin', 'python')} -c "import sys; print(sys.prefix)"`, {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          encoding: 'utf8'
-        }).trim();
-
-    return venvCheck === venvPath;
-  } catch (error) {
-    return false;
+async function waitForApiReady() {
+  console.log('Waiting for API to start...');
+  const maxRetries = 15; // Increase timeout to 15 seconds
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch('http://localhost:8000/health');
+      if (response.ok) {
+        console.log('API is ready!');
+        return true;
+      }
+    } catch (e) {
+      // Ignore error and retry
+    }
+    
+    // Wait 1 second before retrying
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    process.stdout.write('.');
   }
+  
+  console.error('\nAPI failed to start within timeout period');
+  return false;
 }
 
-function startServers() {
+function startPythonApi() {
+  const apiDir = resolve(__dirname, 'api');
+  const venvPath = join(apiDir, 'venv');
+  const pythonBin = join(venvPath, 'bin', 'python');
+  
+  console.log('Starting Python API...');
+  const pythonApi = spawn('bash', [
+    '-c',
+    `export VIRTUAL_ENV="${venvPath}" && \
+     export PATH="${venvPath}/bin:$PATH" && \
+     cd "${apiDir}" && \
+     exec "${pythonBin}" main.py`
+  ], {
+    stdio: 'pipe',
+    shell: true,
+    env: {
+      ...process.env,
+      VIRTUAL_ENV: venvPath,
+      PATH: `${join(venvPath, 'bin')}:${process.env.PATH}`
+    }
+  });
+
+  // Handle API output for better diagnostics
+  pythonApi.stdout.on('data', (data) => {
+    console.log(`[API] ${data.toString().trim()}`);
+  });
+
+  pythonApi.stderr.on('data', (data) => {
+    console.error(`[API ERROR] ${data.toString().trim()}`);
+  });
+  
+  return pythonApi;
+}
+
+async function startServers() {
   const apiDir = resolve(__dirname, 'api');
   const venvPath = join(apiDir, 'venv');
   const pythonBin = join(venvPath, 'bin', 'python');
@@ -98,16 +139,16 @@ function startServers() {
     throw new Error('Python virtual environment not found. Please run setup first.');
   }
 
-  // Start Python API
+  // Start Python API with improved logging
   console.log('Starting Python API...');
-  const pythonApi = spawn('bash', [
+  let pythonApi = spawn('bash', [
     '-c',
     `export VIRTUAL_ENV="${venvPath}" && \
      export PATH="${venvPath}/bin:$PATH" && \
      cd "${apiDir}" && \
      exec "${pythonBin}" main.py`
   ], {
-    stdio: 'inherit',
+    stdio: 'pipe', // Capture output for better logging control
     shell: true,
     env: {
       ...process.env,
@@ -116,70 +157,100 @@ function startServers() {
     }
   });
 
-  // Wait for API to start
-  console.log('Waiting for API to start...');
-  let apiReady = false;
-  let retries = 0;
-  const maxRetries = 10;
+  // Handle API output for better diagnostics
+  pythonApi.stdout.on('data', (data) => {
+    console.log(`[API] ${data.toString().trim()}`);
+  });
 
-  while (!apiReady && retries < maxRetries) {
-    try {
-      execSync('curl -s http://localhost:8000/health', { stdio: 'ignore' });
-      apiReady = true;
-      console.log('API is ready!');
-    } catch (error) {
-      retries++;
-      if (retries === maxRetries) {
-        console.error('Failed to start API server');
-        process.exit(1);
-      }
-      execSync('sleep 1');
-    }
+  pythonApi.stderr.on('data', (data) => {
+    console.error(`[API ERROR] ${data.toString().trim()}`);
+  });
+
+  // Wait for API to start
+  const apiReady = await waitForApiReady();
+  
+  if (!apiReady) {
+    console.error('API failed to start, check logs for details');
+    pythonApi.kill();
+    process.exit(1);
   }
 
   // Only start Vite server if API is running
-  if (apiReady) {
-    // Install npm dependencies if needed
-    if (!existsSync(join(__dirname, 'node_modules'))) {
-      console.log('Installing npm dependencies...');
-      execSync('npm install', { 
-        stdio: 'inherit',
-        cwd: __dirname 
-      });
-    }
-
-    // Start Vite dev server
-    console.log('Starting Vite development server...');
-    const viteServer = spawn('npm', ['run', 'dev'], {
+  // Install npm dependencies if needed
+  if (!existsSync(join(__dirname, 'node_modules'))) {
+    console.log('Installing npm dependencies...');
+    execSync('npm install', { 
       stdio: 'inherit',
-      shell: true,
-      cwd: __dirname
-    });
-
-    // Handle cleanup
-    const cleanup = () => {
-      console.log('\nShutting down servers...');
-      pythonApi.kill();
-      viteServer.kill();
-      process.exit();
-    };
-
-    process.on('SIGINT', cleanup);
-    process.on('SIGTERM', cleanup);
-
-    // Handle errors
-    pythonApi.on('error', (err) => {
-      console.error('Failed to start Python API:', err);
-      viteServer.kill();
-      process.exit(1);
-    });
-
-    viteServer.on('error', (err) => {
-      console.error('Failed to start Vite server:', err);
-      pythonApi.kill();
-      process.exit(1);
+      cwd: __dirname 
     });
   }
+
+  // Start Vite dev server
+  console.log('Starting Vite development server...');
+  const viteServer = spawn('npm', ['run', 'dev'], {
+    stdio: 'inherit',
+    shell: true,
+    cwd: __dirname
+  });
+
+  // Handle cleanup
+  const cleanup = () => {
+    console.log('\nShutting down servers...');
+    pythonApi.kill();
+    viteServer.kill();
+    process.exit();
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+
+  // Set up health check interval for API
+  const healthCheckInterval = setInterval(async () => {
+    try {
+      const response = await fetch('http://localhost:8000/health', { 
+        signal: AbortSignal.timeout(2000) // 2 second timeout
+      });
+      if (!response.ok) {
+        console.error('API health check failed, attempting restart...');
+        pythonApi.kill();
+        pythonApi = startPythonApi(); // Reassign the new process
+      }
+    } catch (e) {
+      console.error('API health check failed (connection error), attempting restart...');
+      try {
+        pythonApi.kill();
+      } catch (err) {
+        // Process might already be dead
+      }
+      pythonApi = startPythonApi(); // Reassign the new process
+    }
+  }, 30000); // Check every 30 seconds
+
+  // Stop checking when the process exits
+  process.on('exit', () => {
+    clearInterval(healthCheckInterval);
+  });
+
+  // When Vite exits, kill the API too
+  viteServer.on('close', () => {
+    console.log('Vite server closed, shutting down API...');
+    pythonApi.kill();
+    clearInterval(healthCheckInterval);
+    process.exit();
+  });
+
+  // Handle errors
+  pythonApi.on('error', (err) => {
+    console.error('Failed to start Python API:', err);
+    viteServer.kill();
+    process.exit(1);
+  });
+
+  viteServer.on('error', (err) => {
+    console.error('Failed to start Vite server:', err);
+    pythonApi.kill();
+    process.exit(1);
+  });
 }
 
 // Main execution

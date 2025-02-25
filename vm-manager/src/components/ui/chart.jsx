@@ -306,3 +306,5 @@ export {
   ChartLegendContent,
   ChartStyle,
 }
+
+export const ChartConfig = {}; // This is just a placeholder for the satisfies keyword

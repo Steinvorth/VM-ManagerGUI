@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Loader2 } from "lucide-react";
 import { useMetrics } from '@/hooks/use-metrics';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -12,7 +12,7 @@ export const ResourceChart = ({
   chartColor,
   metrics: propMetrics = null, // Optionally pass metrics directly (useful for testing)
 }) => {
-  const { metrics: hookMetrics, error } = useMetrics();
+  const { metrics: hookMetrics, error, isLoading } = useMetrics();
   const metrics = propMetrics || hookMetrics;
   
   const containerRef = React.useRef(null);
@@ -43,15 +43,14 @@ export const ResourceChart = ({
 
   // Determine Y-axis ticks based on container height
   const getYAxisTicks = () => {
-    if (containerHeight < 100) {
-      return [0, 50, 100];
-    } else if (containerHeight < 150) {
-      return [0, 20, 40, 60, 80, 100];
-    }
-    return [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    if (containerHeight < 100) return [0, 50, 100];
+    if (containerHeight < 150) return [0, 25, 50, 75, 100]; 
+    return [0, 20, 40, 60, 80, 100]; // Fewer ticks for better performance
   };
 
+  // Format bytes more efficiently
   const formatBytes = (bytes) => {
+    if (bytes === undefined || bytes === null) return '0 GB';
     const gb = bytes / (1024 * 1024 * 1024);
     return gb.toFixed(2) + ' GB';
   };
@@ -118,33 +117,39 @@ export const ResourceChart = ({
     }
   };
 
-  const getChartData = () => {
+  // Get chart data with safety checks
+  const chartData = useMemo(() => {
     if (!metrics) return [];
-
-    let history;
-    switch (resourceType) {
-      case 'cpu':
-        history = metrics.cpu.history;
-        break;
-      case 'memory':
-        history = metrics.memory.history;
-        break;
-      case 'disk':
-        history = metrics.disk.history;
-        break;
-      default:
-        return [];
+    
+    try {
+      let history;
+      switch (resourceType) {
+        case 'cpu':
+          history = metrics.cpu?.history || [];
+          break;
+        case 'memory':
+          history = metrics.memory?.history || [];
+          break;
+        case 'disk':
+          history = metrics.disk?.history || [];
+          break;
+        default:
+          return [];
+      }
+      
+      return history.map(point => ({
+        time: new Date(point.timestamp),
+        usage: point.usage,
+        label: new Date(point.timestamp).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }));
+    } catch (e) {
+      console.error(`Error processing ${resourceType} chart data:`, e);
+      return [];
     }
-
-    return history.map(point => ({
-      time: new Date(point.timestamp),
-      usage: point.usage,
-      label: new Date(point.timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }));
-  };
+  }, [metrics, resourceType]);
 
   const getFooterText = () => {
     switch (resourceType) {
@@ -159,30 +164,49 @@ export const ResourceChart = ({
     }
   };
 
-  if (error) return (
-    <Card className="metric-card">
-      <CardHeader className="metric-card-header">
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-red-500">Error: {error}</div>
-      </CardContent>
-    </Card>
-  );
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card className="metric-card">
+        <CardHeader className="metric-card-header">
+          <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex h-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
-  if (!metrics) return (
-    <Card className="metric-card">
-      <CardHeader className="metric-card-header">
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="animate-pulse">Loading...</div>
-      </CardContent>
-    </Card>
-  );
+  // Error state
+  if (error) {
+    return (
+      <Card className="metric-card">
+        <CardHeader className="metric-card-header">
+          <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-red-500">Error: {error}</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const chartData = getChartData();
+  // No data state
+  if (!metrics) {
+    return (
+      <Card className="metric-card">
+        <CardHeader className="metric-card-header">
+          <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse">Loading...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
+  // Simplified rendering with direct ResponsiveContainer usage
   return (
     <Card className="metric-card">
       <CardHeader className="metric-card-header">
@@ -191,46 +215,40 @@ export const ResourceChart = ({
       </CardHeader>
       <CardContent className="metric-card-content">
         <div ref={containerRef} className="chart-container">
-          <ChartContainer config={chartConfig} className="w-full aspect-auto">
-            <ResponsiveContainer width="100%" height="100%" debounce={50}>
-              <AreaChart
-                data={chartData}
-                margin={{ top: 5, right: 10, left: 30, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  height={24}
-                  tick={{ fontSize: 11 }}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={5}
-                  width={25}
-                  tick={{ fontSize: 10 }}
-                  ticks={getYAxisTicks()}
-                  domain={[0, 100]}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="line" />}
-                />
-                <Area
-                  dataKey="usage"
-                  type="natural"
-                  fill={`hsl(var(${chartColor}))`}
-                  fillOpacity={0.2}
-                  stroke={`hsl(var(${chartColor}))`}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 5, right: 10, left: 5, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                height={24}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={5}
+                width={25}
+                tick={{ fontSize: 10 }}
+                ticks={getYAxisTicks()}
+                domain={[0, 100]}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Area
+                dataKey="usage"
+                type="natural"
+                fill={`hsl(var(${chartColor}))`}
+                fillOpacity={0.2}
+                stroke={`hsl(var(${chartColor}))`}
+                isAnimationActive={false} // Disable animation for performance
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
       <CardFooter className="metric-card-footer">

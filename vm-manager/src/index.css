@@ -285,5 +285,36 @@
   .recharts-surface {
     overflow: visible;
   }
+
+  /* Performance optimizations for charts */
+  .recharts-wrapper, 
+  .recharts-surface, 
+  .recharts-legend-wrapper {
+    transform: translateZ(0);
+    will-change: transform;
+    contain: strict;
+  }
+
+  /* Fix for pie chart rendering */
+  .recharts-pie {
+    transform: translateZ(0);
+  }
+  
+  /* Make colors work properly */
+  .recharts-pie [fill="var(--color-virtualMachines)"] {
+    fill: hsl(var(--chart-1));
+  }
+  
+  .recharts-pie [fill="var(--color-dockerContainers)"] {
+    fill: hsl(var(--chart-2));
+  }
+  
+  .recharts-pie [fill="var(--color-system)"] {
+    fill: hsl(var(--chart-3));
+  }
+  
+  .recharts-pie [fill="var(--color-other)"] {
+    fill: hsl(var(--chart-4));
+  }
 }
 
