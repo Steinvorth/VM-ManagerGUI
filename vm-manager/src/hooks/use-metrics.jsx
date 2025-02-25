@@ -32,7 +32,7 @@ export function useMetrics() {
     fetchMetrics();
 
     // Set up polling every 30 seconds
-    const interval = setInterval(fetchMetrics, 30000);
+    const interval = setInterval(fetchMetrics, 15000);
 
     // Cleanup interval on unmount
     return () => clearInterval(interval);

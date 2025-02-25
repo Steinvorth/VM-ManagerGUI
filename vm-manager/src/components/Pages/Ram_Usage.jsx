@@ -1,5 +1,5 @@
 import React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { TrendingUp } from "lucide-react";
 import { useMetrics } from '@/hooks/use-metrics';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -17,8 +17,12 @@ export const Ram_Usage = () => {
   const chartData = React.useMemo(() => {
     if (!metrics?.memory?.history) return [];
     return metrics.memory.history.map(point => ({
-      time: new Date(point.timestamp).toLocaleTimeString(),
-      usage: point.usage
+      time: new Date(point.timestamp),
+      usage: point.usage,
+      label: new Date(point.timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }));
   }, [metrics]);
 
@@ -46,52 +50,74 @@ export const Ram_Usage = () => {
 
   return (
     <Card className="col-span-1">
-      <CardHeader className="space-y-1">
-        <CardTitle>Memory Usage</CardTitle>
+      <CardHeader className="space-y-1 p-4">
+        <CardTitle className="text-lg font-semibold">Memory Usage</CardTitle>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Usage</p>
-            <div className="text-2xl font-bold">{metrics.memory.percent}%</div>
+            <p className="text-xs text-muted-foreground">Usage</p>
+            <div className="text-xl font-bold">{metrics.memory.percent}%</div>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Available</p>
-            <div className="text-2xl font-bold">{formatBytes(metrics.memory.available)}</div>
+            <p className="text-xs text-muted-foreground">Available</p>
+            <div className="text-xl font-bold">{formatBytes(metrics.memory.available)}</div>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total</p>
-            <div className="text-2xl font-bold">{formatBytes(metrics.memory.total)}</div>
+            <p className="text-xs text-muted-foreground">Total</p>
+            <div className="text-xl font-bold">{formatBytes(metrics.memory.total)}</div>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4">
         <ChartContainer config={chartConfig}>
           <AreaChart
             data={chartData}
             height={200}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            margin={{ top: 5, right: 30, left: 35, bottom: 5 }}
+            accessibilityLayer
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
-              dataKey="time"
+              dataKey="label"
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => value.slice(0, 5)}
+              tickMargin={8}
+              height={24}
+              tick={{ fontSize: 11 }}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              width={35}
+              tick={{ fontSize: 11 }}
+              ticks={[0, 20, 40, 60, 80, 100]}
+              domain={[0, 100]}
+              tickFormatter={(value) => `${value}%`}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent indicator="line" />}
+            />
             <Area
-              type="monotone"
               dataKey="usage"
-              stroke={chartConfig.memory.color}
-              fill={chartConfig.memory.color}
+              type="natural"
+              fill={`hsl(var(--chart-2))`}
               fillOpacity={0.2}
+              stroke={`hsl(var(--chart-2))`}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter>
-        <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-          <TrendingUp className="h-4 w-4" />
-          <span>Real-time memory usage</span>
+      <CardFooter className="p-4">
+        <div className="grid gap-2">
+          <div className="flex items-center gap-2 text-sm">
+            <TrendingUp className="h-4 w-4" />
+            <span className="font-medium">Real-time memory usage</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Updated every 15 seconds
+          </div>
         </div>
       </CardFooter>
     </Card>

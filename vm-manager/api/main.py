@@ -52,7 +52,7 @@ async def health_check():
 
 # Constants
 MAX_HISTORY_MINUTES = 30
-HISTORY_INTERVAL_SECONDS = 60  # Store data every minute
+HISTORY_INTERVAL_SECONDS = 15  # Store data every 15 seconds
 MAX_SAMPLES = (MAX_HISTORY_MINUTES * 60) // HISTORY_INTERVAL_SECONDS
 
 # Initialize deques for historical data
