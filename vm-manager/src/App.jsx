@@ -1,7 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar"
-import { CPU_Usage } from "@/components/Pages/CPU_Usage"
-import { Ram_Usage } from "@/components/Pages/Ram_Usage"
-import { Storage_Usage } from "@/components/Pages/Storage_Usage"
+import { ResourceChart } from "@/components/ResourceChart"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -36,11 +34,23 @@ export default function App() {
         </header>
         <div className="metrics-container">
           <div className="metrics-row">
-            <CPU_Usage />
-            <Ram_Usage />
+            <ResourceChart 
+              resourceType="cpu" 
+              title="CPU Usage" 
+              chartColor="--chart-1" 
+            />
+            <ResourceChart 
+              resourceType="memory" 
+              title="Memory Usage" 
+              chartColor="--chart-2" 
+            />
           </div>
           <div className="metrics-row">
-            <Storage_Usage />
+            <ResourceChart 
+              resourceType="disk" 
+              title="Storage Usage" 
+              chartColor="--chart-3" 
+            />
             <Card className="metric-card">
               <CardHeader className="metric-card-header">
                 <CardTitle className="text-base font-semibold">Network Usage</CardTitle>
